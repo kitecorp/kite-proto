@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package kite.v1;
+
+option java_package = "cloud.kitelang.proto.v1";
+option java_multiple_files = true;
+option go_package = "kite.cloud/proto/kite/v1;kitev1";
+
+// Diagnostic represents an error or warning message from a provider.
+message Diagnostic {
+    enum Severity {
+        INVALID = 0;
+        ERROR = 1;
+        WARNING = 2;
+    }
+
+    Severity severity = 1;
+    string summary = 2;
+    string detail = 3;
+    PropertyPath property = 4;
+}
+
+// PropertyPath identifies a specific property within a resource configuration.
+message PropertyPath {
+    repeated Step steps = 1;
+
+    message Step {
+        oneof selector {
+            // Property name for object properties
+            string propertyName = 1;
+            // Integer key for list/tuple elements
+            int64 elementKeyInt = 2;
+            // String key for map elements
+            string elementKeyString = 3;
+        }
+    }
+}

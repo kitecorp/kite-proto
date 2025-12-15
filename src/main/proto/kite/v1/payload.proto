@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package kite.v1;
+
+option java_package = "cloud.kitelang.proto.v1";
+option java_multiple_files = true;
+option go_package = "kite.cloud/proto/kite/v1;kitev1";
+
+// ResourcePayload carries serialized resource data.
+// Uses msgpack encoding for flexibility across different resource types.
+message ResourcePayload {
+    // Primary encoding: msgpack-encoded value
+    bytes msgpack = 1;
+
+    // Alternative encoding: JSON for debugging/human readability
+    bytes json = 2;
+}

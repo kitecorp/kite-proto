@@ -1,0 +1,166 @@
+syntax = "proto3";
+
+package kite.v1;
+
+option java_package = "cloud.kitelang.proto.v1";
+option java_multiple_files = true;
+option go_package = "kite.cloud/proto/kite/v1;kitev1";
+
+import "kite/v1/schema.proto";
+import "kite/v1/payload.proto";
+import "kite/v1/diagnostic.proto";
+
+// Provider is the main gRPC service that all Kite providers must implement.
+// This follows a similar pattern to Terraform's provider protocol.
+service Provider {
+    // GetProviderSchema returns the complete schema for this provider,
+    // including all resource types it supports.
+    rpc GetProviderSchema(GetProviderSchema.Request) returns (GetProviderSchema.Response);
+
+    // ConfigureProvider configures the provider with user-supplied configuration
+    // (e.g., credentials, region, endpoints).
+    rpc ConfigureProvider(ConfigureProvider.Request) returns (ConfigureProvider.Response);
+
+    // ValidateResourceConfig validates a resource configuration before planning.
+    rpc ValidateResourceConfig(ValidateResourceConfig.Request) returns (ValidateResourceConfig.Response);
+
+    // ReadResource reads the current state of a resource from the cloud.
+    rpc ReadResource(ReadResource.Request) returns (ReadResource.Response);
+
+    // PlanResourceChange computes what changes would be made to a resource.
+    rpc PlanResourceChange(PlanResourceChange.Request) returns (PlanResourceChange.Response);
+
+    // CreateResource creates a new resource in the cloud.
+    rpc CreateResource(CreateResource.Request) returns (CreateResource.Response);
+
+    // UpdateResource updates an existing resource in the cloud.
+    rpc UpdateResource(UpdateResource.Request) returns (UpdateResource.Response);
+
+    // DeleteResource removes a resource from the cloud.
+    rpc DeleteResource(DeleteResource.Request) returns (DeleteResource.Response);
+
+    // StopProvider gracefully shuts down the provider.
+    rpc StopProvider(StopProvider.Request) returns (StopProvider.Response);
+}
+
+// GetProviderSchema messages
+message GetProviderSchema {
+    message Request {}
+
+    message Response {
+        ProviderSchema provider = 1;
+        map<string, Schema> resourceSchemas = 2;
+        repeated Diagnostic diagnostics = 3;
+    }
+}
+
+// ConfigureProvider messages
+message ConfigureProvider {
+    message Request {
+        ResourcePayload config = 1;
+    }
+
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+// ValidateResourceConfig messages
+message ValidateResourceConfig {
+    message Request {
+        string typeName = 1;
+        ResourcePayload config = 2;
+    }
+
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+// ReadResource messages
+message ReadResource {
+    message Request {
+        string typeName = 1;
+        ResourcePayload currentState = 2;
+        bytes privateData = 3;  // Provider-internal data
+    }
+
+    message Response {
+        ResourcePayload newState = 1;
+        bytes privateData = 2;
+        repeated Diagnostic diagnostics = 3;
+    }
+}
+
+// PlanResourceChange messages
+message PlanResourceChange {
+    message Request {
+        string typeName = 1;
+        ResourcePayload priorState = 2;
+        ResourcePayload proposedNewState = 3;
+        ResourcePayload config = 4;
+        bytes privateData = 5;
+    }
+
+    message Response {
+        ResourcePayload plannedState = 1;
+        repeated PropertyPath requiresReplace = 2;
+        bytes privateData = 3;
+        repeated Diagnostic diagnostics = 4;
+    }
+}
+
+// CreateResource messages
+message CreateResource {
+    message Request {
+        string typeName = 1;
+        ResourcePayload config = 2;
+        ResourcePayload priorState = 3;  // null for create
+        bytes privateData = 4;
+    }
+
+    message Response {
+        ResourcePayload newState = 1;
+        bytes privateData = 2;
+        repeated Diagnostic diagnostics = 3;
+    }
+}
+
+// UpdateResource messages
+message UpdateResource {
+    message Request {
+        string typeName = 1;
+        ResourcePayload priorState = 2;
+        ResourcePayload plannedState = 3;
+        ResourcePayload config = 4;
+        bytes privateData = 5;
+    }
+
+    message Response {
+        ResourcePayload newState = 1;
+        bytes privateData = 2;
+        repeated Diagnostic diagnostics = 3;
+    }
+}
+
+// DeleteResource messages
+message DeleteResource {
+    message Request {
+        string typeName = 1;
+        ResourcePayload priorState = 2;
+        bytes privateData = 3;
+    }
+
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+// StopProvider messages
+message StopProvider {
+    message Request {}
+
+    message Response {
+        string error = 1;
+    }
+}

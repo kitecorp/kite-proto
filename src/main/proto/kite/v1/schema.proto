@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package kite.v1;
+
+option java_package = "cloud.kitelang.proto.v1";
+option java_multiple_files = true;
+option go_package = "kite.cloud/proto/kite/v1;kitev1";
+
+// Schema describes a resource type's structure.
+// Maps to Kite's schema definitions (@Property, @Cloud annotations).
+message Schema {
+    int64 version = 1;
+    Block block = 2;
+}
+
+// ProviderSchema contains provider-level configuration schema.
+message ProviderSchema {
+    Schema provider = 1;
+}
+
+// Block describes a configuration block structure.
+message Block {
+    repeated Property properties = 1;
+    repeated BlockType blockTypes = 2;
+    string description = 3;
+    bool deprecated = 4;
+}
+
+// Property describes a single configuration property.
+message Property {
+    string name = 1;
+
+    // Type descriptor (msgpack-encoded cty.Type for complex types)
+    bytes type = 2;
+
+    // For complex nested structures
+    NestedType nestedType = 3;
+
+    string description = 4;
+
+    // Validation flags
+    bool required = 5;
+    bool optional = 6;
+
+    // Cloud-managed property (equivalent to @Cloud annotation)
+    // These are read-only, set by the cloud provider after creation
+    bool computed = 7;
+
+    // Sensitive data (passwords, tokens, etc.)
+    bool sensitive = 8;
+
+    bool deprecated = 9;
+}
+
+// NestedType describes nested property structures.
+message NestedType {
+    enum NestingMode {
+        INVALID = 0;
+        SINGLE = 1;   // Single nested object
+        LIST = 2;     // List of objects
+        SET = 3;      // Set of objects (unordered, unique)
+        MAP = 4;      // Map of string to objects
+    }
+
+    repeated Property properties = 1;
+    NestingMode nestingMode = 2;
+}
+
+// BlockType describes a nested block within a configuration.
+message BlockType {
+    string typeName = 1;
+    Block block = 2;
+    NestedType.NestingMode nesting = 3;
+    int64 minItems = 4;
+    int64 maxItems = 5;
+}
