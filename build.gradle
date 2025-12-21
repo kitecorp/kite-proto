@@ -25,7 +25,7 @@ def protobufVersion = '4.33.2'
 
 dependencies {
     // Use 'api' so consumers get transitive access to gRPC classes
-    api "io.grpc:grpc-netty-shaded:${grpcVersion}"
+    // NOTE: Transport (netty/okhttp) should be added by consumers, not here
     api "io.grpc:grpc-protobuf:${grpcVersion}"
     api "io.grpc:grpc-stub:${grpcVersion}"
     api "com.google.protobuf:protobuf-java:${protobufVersion}"
