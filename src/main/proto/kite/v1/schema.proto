@@ -50,6 +50,10 @@ message Property {
     bool sensitive = 8;
 
     bool deprecated = 9;
+
+    // Default value (as string representation)
+    // Used to avoid showing "removed" in diff when cloud returns the default
+    string defaultValue = 10;
 }
 
 // NestedType describes nested property structures.
