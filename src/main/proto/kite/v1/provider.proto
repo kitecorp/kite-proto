@@ -41,6 +41,10 @@ service Provider {
 
     // StopProvider gracefully shuts down the provider.
     rpc StopProvider(StopProvider.Request) returns (StopProvider.Response);
+
+    // HealthCheck checks if the provider is alive and responsive.
+    // Used for persistent provider mode to detect running providers.
+    rpc HealthCheck(HealthCheck.Request) returns (HealthCheck.Response);
 }
 
 // GetProviderSchema messages
@@ -162,5 +166,17 @@ message StopProvider {
 
     message Response {
         string error = 1;
+    }
+}
+
+// HealthCheck messages
+message HealthCheck {
+    message Request {}
+
+    message Response {
+        bool healthy = 1;
+        int64 uptime_ms = 2;       // How long the provider has been running
+        int64 last_activity_ms = 3; // Milliseconds since last activity
+        int64 idle_timeout_ms = 4;  // Configured idle timeout
     }
 }
