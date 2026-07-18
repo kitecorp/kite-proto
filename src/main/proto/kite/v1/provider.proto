@@ -157,6 +157,7 @@ message DeleteResource {
 
     message Response {
         repeated Diagnostic diagnostics = 1;
+        bytes privateData = 2;  // Post-destroy private data, for request/response symmetry
     }
 }
 
