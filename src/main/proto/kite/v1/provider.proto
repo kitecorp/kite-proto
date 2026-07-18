@@ -27,6 +27,13 @@ service Provider {
     // ReadResource reads the current state of a resource from the cloud.
     rpc ReadResource(ReadResource.Request) returns (ReadResource.Response);
 
+    // ImportResource adopts a pre-existing cloud resource by its identifier
+    // (instance id, ARN, resource name, ...), returning the full state and
+    // provider-private bytes to persist — the counterpart of Terraform's
+    // ImportResourceState. Unlike ReadResource, which refreshes from a known
+    // state, import starts from nothing but an id.
+    rpc ImportResource(ImportResource.Request) returns (ImportResource.Response);
+
     // PlanResourceChange computes what changes would be made to a resource.
     rpc PlanResourceChange(PlanResourceChange.Request) returns (PlanResourceChange.Response);
 
@@ -90,6 +97,25 @@ message ReadResource {
     }
 
     message Response {
+        ResourcePayload newState = 1;
+        bytes privateData = 2;
+        repeated Diagnostic diagnostics = 3;
+    }
+}
+
+// ImportResource messages
+message ImportResource {
+    message Request {
+        string typeName = 1;
+        // Provider-interpreted identifier of the resource to adopt
+        // (e.g. an instance id, ARN, or resource name)
+        string importId = 2;
+    }
+
+    message Response {
+        // The imported resource state; unset/empty when the provider does not
+        // support import for this type or found nothing for the id — callers
+        // fall back to a query-based read in that case
         ResourcePayload newState = 1;
         bytes privateData = 2;
         repeated Diagnostic diagnostics = 3;
