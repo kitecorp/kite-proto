@@ -2,6 +2,8 @@ plugins {
     id 'java-library'
     id 'com.google.protobuf' version '0.9.4'
     id 'maven-publish'
+    // Applied at the end of this file, and only when this repository is built on its own
+    id 'org.jreleaser' version '1.23.0' apply false
 }
 
 group = 'cloud.kitelang'
@@ -12,6 +14,39 @@ publishing {
         maven(MavenPublication) {
             from components.java
             artifactId = 'kite-proto'
+
+            // Maven Central refuses a POM without name, description, url, licenses, developers and scm
+            pom {
+                name = 'Kite Proto'
+                description = 'Protocol Buffers and gRPC definitions of the protocol between the Kite engine and its providers'
+                url = 'https://github.com/kitecorp/kite-proto'
+                licenses {
+                    license {
+                        name = 'Apache License 2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'kitecorp'
+                        name = 'Kite Team'
+                        url = 'https://github.com/kitecorp'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:https://github.com/kitecorp/kite-proto.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/kitecorp/kite-proto.git'
+                    url = 'https://github.com/kitecorp/kite-proto'
+                }
+            }
+        }
+    }
+
+    repositories {
+        // The publish workflow stages the release here, and JReleaser uploads it from here
+        maven {
+            name = 'stagingDeploy'
+            url = layout.buildDirectory.dir('staging-deploy')
         }
     }
 }
@@ -54,14 +89,50 @@ java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(25))
     }
+    // Maven Central refuses a jar without its sources and javadoc jars
+    withSourcesJar()
+    withJavadocJar()
 }
 
-// Make generated sources available to IDE
-sourceSets {
-    main {
-        java {
-            srcDirs 'build/generated/source/proto/main/grpc'
-            srcDirs 'build/generated/source/proto/main/java'
+// The protobuf plugin already adds the generated java and grpc sources to the main source set,
+// which is also how the IDE sees them. Adding the same folders again by hand put every generated
+// file into sourcesJar twice, and the jar refused the duplicates.
+
+// JReleaser signs and checksums the staged files and uploads them to Maven Central through the
+// Central Portal. Only the publish workflow uses it, and that builds this repository on its own.
+// In a multi-project build (the kite superproject, or the SDK build in kite-providers) each project
+// that applies JReleaser loads its own copy of it, and two copies fail the build with
+// "Banner$Inject_ cannot be cast to Banner".
+if (project == rootProject) {
+    apply plugin: 'org.jreleaser'
+
+    jreleaser {
+        signing {
+            active = 'ALWAYS'
+            armored = true
+            mode = 'MEMORY'  // the key comes from the JRELEASER_GPG_* environment variables
         }
+        deploy {
+            maven {
+                mavenCentral {
+                    sonatype {
+                        active = 'ALWAYS'
+                        url = 'https://central.sonatype.com/api/v1/publisher'
+                        stagingRepository('build/staging-deploy')
+                        // Also checks each POM, and that the sources and javadoc jars are staged,
+                        // against Maven Central's rules before anything is uploaded
+                        applyMavenCentralRules = true
+                        retryDelay = 30
+                        maxRetries = 60
+                    }
+                }
+            }
+        }
+    }
+
+    tasks.named('jreleaserDeploy') {
+        dependsOn 'publishAllPublicationsToStagingDeployRepository'
+        // JReleaser reads the project while the task runs, which the configuration cache refuses
+        notCompatibleWithConfigurationCache('JReleaser reads Task.project at execution time')
     }
 }
